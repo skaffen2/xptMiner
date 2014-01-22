@@ -10,6 +10,8 @@ uint64_t getTimeMilliseconds(void) {
   uint64_t tick = mach_absolute_time();
   milliseconds = (tick * convfact.numer) / (convfact.denom * 1000000);
 #elif defined(_WIN32)
+  milliseconds = GetTickCount();
+#elif defined(_WIN64)
   milliseconds = GetTickCount64();
 #elif defined(__unix__)
   struct timespec now;
