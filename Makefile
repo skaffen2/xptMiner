@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -mtune=native -Wall -Wextra -std=c++0x -O3 -fomit-frame-pointer
+CFLAGS = -march=native -Wall -Wextra -std=c++0x -O3 -fomit-frame-pointer 
 
 OSVERSION := $(shell uname -s)
 LIBS = -lgmp -lgmpxx -lcrypto -lssl -pthread
@@ -47,12 +47,12 @@ OBJS = \
 	xptMiner/transaction.o \
 	xptMiner/sha2.o
 
-all: jhprimeminer
+all: xptminer
 
 xptMiner/%.o: xptMiner/%.cpp
 	$(CXX) -c $(CFLAGS) $(INCLUDEPATHS) $< -o $@ 
 
-jhprimeminer: $(OBJS:xptMiner/%=xptMiner/%) $(JHLIB:xptMiner/jhlib/%=xptMiner/jhlib/%)
+xptminer: $(OBJS:xptMiner/%=xptMiner/%) $(JHLIB:xptMiner/jhlib/%=xptMiner/jhlib/%)
 	$(CXX) $(CFLAGS) $(LIBPATHS) $(INCLUDEPATHS) -o $@ $^ $(LIBS)
 
 clean:
