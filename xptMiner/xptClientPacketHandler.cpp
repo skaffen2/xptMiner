@@ -217,11 +217,15 @@ bool xptClient_processPacket_ping(xptClient_t* xptClient)
 	if( readError )
 		return false;
 	// get current high precision time and frequency
-  uint64 timestampNow = getTimeHighRes();
+	uint64 timestampNow = getTimeHighRes();
 	// calculate time difference in ms
 	uint64 timeDif = timestampNow - timestamp;
+#ifdef _WIN32
 	timeDif *= 10000ULL;
 	timeDif /= getTimerRes();
+#else
+	timeDif /= 100000;
+#endif
 	// update and calculate simple average
 	xptClient->pingSum += timeDif;
 	xptClient->pingCount++;

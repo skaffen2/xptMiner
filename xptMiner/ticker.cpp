@@ -38,7 +38,7 @@ uint64_t getTimeHighRes(void) {
 #elif defined(__unix__)
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  timestamp = now.tv_sec * 100000000 + now.tv_nsec;
+  timestamp = now.tv_sec * 1000000000 + now.tv_nsec;
 
 #endif
   return timestamp;

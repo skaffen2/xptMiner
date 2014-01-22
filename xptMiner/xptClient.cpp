@@ -479,13 +479,8 @@ void xptClient_sendPing(xptClient_t* xptClient)
 {
 	// Windows only for now
  
-#ifdef WIN32  
-	LARGE_INTEGER hpc;
-	QueryPerformanceCounter(&hpc);
-	uint64 timestamp = (uint64)hpc.QuadPart;
-#else
-uint64 timestamp = getTimeMilliseconds();
-#endif
+
+	uint64 timestamp = getTimeHighRes();
 	// build the packet
 	bool sendError = false;
 	xptPacketbuffer_beginWritePacket(xptClient->sendBuffer, XPT_OPC_C_PING);
