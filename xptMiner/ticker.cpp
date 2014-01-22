@@ -33,7 +33,7 @@ uint64_t getTimeHighRes(void) {
 
   LARGE_INTEGER hpc;
   QueryPerformanceCounter(&hpc);
-  uint64_t timestamp = (uint64_t)hpc.QuadPart;
+ uint64_t timestamp = (uint64_t)hpc.QuadPart;
 
 #elif defined(__unix__)
   struct timespec now;
