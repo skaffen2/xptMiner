@@ -1,8 +1,6 @@
 CXX = g++
-#CFLAGS = -mtune=native -Wall -Wextra -std=c++0x -O3 -fomit-frame-pointer
-#CFLAGS = -std=c++11 -march=native -O3 -fomit-frame-pointer -msse3 -msse2 -mssse3 -funroll-loops
-CFLAGS = -std=c++11 -Ofast -march=native -mfpmath=sse -mieee-fp -mmmx -msse -msse2 -msse4a
-#CFLAGS = -O3 -std=c++0x -mavx -m64 -march=corei7-avx -mtune=corei7-avx -lstdc++
+CFLAGS = -mtune=native -Wall -Wextra -std=c++0x -O3 -fomit-frame-pointer
+
 OSVERSION := $(shell uname -s)
 LIBS = -lgmp -lgmpxx -lcrypto -lssl -pthread
 
