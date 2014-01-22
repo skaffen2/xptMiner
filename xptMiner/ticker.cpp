@@ -33,7 +33,7 @@ uint64_t getTimeHighRes(void) {
 
   LARGE_INTEGER hpc;
   QueryPerformanceCounter(&hpc);
-  uint64 timestamp = (uint64)hpc.QuadPart;
+  uint64_t timestamp = (uint64_t)hpc.QuadPart;
 
 #elif defined(__unix__)
   struct timespec now;
@@ -49,7 +49,7 @@ uint64_t getTimerRes(void) {
 #ifdef WIN32
   LARGE_INTEGER hpcFreq;
   QueryPerformanceFrequency(&hpcFreq);
-  return (uint64)hpcFreq.QuadPart;
+  return (uint64_t)hpcFreq.QuadPart;
 #else
     struct timespec t_res;
   clock_getres(CLOCK_MONOTONIC, &t_res);
