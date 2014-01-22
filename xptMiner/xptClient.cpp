@@ -1,9 +1,18 @@
 #include"global.h"
+#include"ticker.h"
+#ifndef _WIN32
+#include <errno.h>
+#include <cstring>
+#endif
 
+#include <iostream>
+#define SHA2_TYPES
+#include "sha2.h"
 /*
- * Tries to establish a connection to the given ip:port
- * Uses a blocking connect operation
- */
+ + * Tries to establish a connection to the given ip:port
+ + * Uses a blocking connect operation
+ + */
+#ifdef _WIN32
 SOCKET xptClient_openConnection(char *IP, int Port)
 {
 	SOCKET s=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
@@ -19,6 +28,18 @@ SOCKET xptClient_openConnection(char *IP, int Port)
 	{
 		return SOCKET_ERROR;
 	}
+#else
+int xptClient_openConnection(char *IP, int Port)
+{
+  int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(sockaddr_in));
+  addr.sin_family = AF_INET;
+  addr.sin_port=htons(Port);
+  addr.sin_addr.s_addr = inet_addr(IP);
+  int result = connect(s, (sockaddr*)&addr, sizeof(sockaddr_in));
+#endif
+
 	return s;
 }
 
@@ -32,11 +53,20 @@ xptClient_t* xptClient_create()
 	memset(xptClient, 0x00, sizeof(xptClient_t));
 	// initialize object
 	xptClient->disconnected = true;
+#ifdef _WIN32
 	xptClient->clientSocket = SOCKET_ERROR;
+#else
+  xptClient->clientSocket = 0;
+#endif
 	xptClient->sendBuffer = xptPacketbuffer_create(256*1024);
 	xptClient->recvBuffer = xptPacketbuffer_create(256*1024);
+#ifdef _WIN32
 	InitializeCriticalSection(&xptClient->cs_shareSubmit);
 	InitializeCriticalSection(&xptClient->cs_workAccess);
+#else
+  pthread_mutex_init(&xptClient->cs_shareSubmit, NULL);
+  pthread_mutex_init(&xptClient->cs_workAccess, NULL);
+#endif
 	xptClient->list_shareSubmitQueue = simpleList_create(4);
 	// return object
 	return xptClient;
@@ -53,17 +83,32 @@ bool xptClient_connect(xptClient_t* xptClient, generalRequestTarget_t* target)
 	if( xptClient->disconnected == false )
 		return false;
 	// first try to connect to the given host/port
+#ifdef _WIN32
 	SOCKET clientSocket = xptClient_openConnection(target->ip, target->port);
 	if( clientSocket == SOCKET_ERROR )
 		return false;
+#else
+  int clientSocket = xptClient_openConnection(target->ip, target->port);
+		if( clientSocket == 0 )
+					return false;
+#endif
+
+#ifdef _WIN32
 	// set socket as non-blocking
 	unsigned int nonblocking=1;
 	unsigned int cbRet;
 	WSAIoctl(clientSocket, FIONBIO, &nonblocking, sizeof(nonblocking), NULL, 0, (LPDWORD)&cbRet, NULL, NULL);
+#else
+  int flags, err;
+  flags = fcntl(clientSocket, F_GETFL, 0); 
+  flags |= O_NONBLOCK;
+  err = fcntl(clientSocket, F_SETFL, flags); //ignore errors for now..
+#endif
 	// initialize the connection details
 	xptClient->clientSocket = clientSocket;
-	strcpy_s(xptClient->username, 127, target->authUser);
-	strcpy_s(xptClient->password, 127, target->authPass);
+
+	strncpy(xptClient->username, target->authUser ,127);
+	strncpy(xptClient->password, target->authPass, 127);
 	// reset old work info
 	memset(&xptClient->blockWorkInfo, 0x00, sizeof(xptBlockWorkInfo_t));
 	// send worker login
@@ -81,10 +126,19 @@ void xptClient_forceDisconnect(xptClient_t* xptClient)
 {
 	if( xptClient->disconnected )
 		return; // already disconnected
+
+	  #ifdef _WIN32
 	if( xptClient->clientSocket != SOCKET_ERROR )
 	{
 		closesocket(xptClient->clientSocket);
 		xptClient->clientSocket = SOCKET_ERROR;
+#else
+  if( xptClient->clientSocket != 0 )
+  {
+    close(xptClient->clientSocket);
+	xptClient->clientSocket = 0;
+#endif
+    
 	}
 	xptClient->disconnected = true;
 	// mark work as unavailable
@@ -98,10 +152,19 @@ void xptClient_free(xptClient_t* xptClient)
 {
 	xptPacketbuffer_free(xptClient->sendBuffer);
 	xptPacketbuffer_free(xptClient->recvBuffer);
+	
+#ifdef _WIN32
 	if( xptClient->clientSocket != SOCKET_ERROR )
 	{
 		closesocket(xptClient->clientSocket);
 	}
+#else
+	if( xptClient->clientSocket != 0 )
+	{
+    close(xptClient->clientSocket);
+	}
+#endif
+	
 	simpleList_free(xptClient->list_shareSubmitQueue);
 	free(xptClient);
 }
@@ -330,8 +393,8 @@ void xptClient_getDifficultyTargetFromCompact(uint32 nCompact, uint32* hashTarge
  */
 void xptClient_sendWorkerLogin(xptClient_t* xptClient)
 {
-	uint32 usernameLength = min(127, (uint32)strlen(xptClient->username));
-	uint32 passwordLength = min(127, (uint32)strlen(xptClient->password));
+//	uint32 usernameLength = std::min(127, (uint32)strlen(xptClient->username));
+//	uint32 passwordLength = std::min(127, (uint32)strlen(xptClient->password));
 	// build the packet
 	bool sendError = false;
 	xptPacketbuffer_beginWritePacket(xptClient->sendBuffer, XPT_OPC_C_AUTH_REQ);
@@ -415,9 +478,14 @@ void xptClient_sendShare(xptClient_t* xptClient, xptShareToSubmit_t* xptShareToS
 void xptClient_sendPing(xptClient_t* xptClient)
 {
 	// Windows only for now
+ 
+#ifdef WIN32  
 	LARGE_INTEGER hpc;
 	QueryPerformanceCounter(&hpc);
 	uint64 timestamp = (uint64)hpc.QuadPart;
+#else
+uint64 timestamp = getTimeMilliseconds();
+#endif
 	// build the packet
 	bool sendError = false;
 	xptPacketbuffer_beginWritePacket(xptClient->sendBuffer, XPT_OPC_C_PING);
@@ -457,7 +525,11 @@ bool xptClient_process(xptClient_t* xptClient)
 	if( xptClient == NULL )
 		return false;
 	// are there shares to submit?
+#ifdef _WIN32
 	EnterCriticalSection(&xptClient->cs_shareSubmit);
+#else
+    pthread_mutex_lock(&xptClient->cs_shareSubmit);
+#endif
 	if( xptClient->list_shareSubmitQueue->objectCount > 0 )
 	{
 		for(uint32 i=0; i<xptClient->list_shareSubmitQueue->objectCount; i++)
@@ -469,7 +541,11 @@ bool xptClient_process(xptClient_t* xptClient)
 		// clear list
 		xptClient->list_shareSubmitQueue->objectCount = 0;
 	}
+#ifdef _WIN32
 	LeaveCriticalSection(&xptClient->cs_shareSubmit);
+#else
+  pthread_mutex_unlock(&xptClient->cs_shareSubmit);
+#endif
 	// check if we need to send ping
 	uint32 currentTime = (uint32)time(NULL);
 	if( xptClient->time_sendPing != 0 && currentTime >= xptClient->time_sendPing )
@@ -486,12 +562,20 @@ bool xptClient_process(xptClient_t* xptClient)
 	sint32 r = recv(xptClient->clientSocket, (char*)(xptClient->recvBuffer->buffer+xptClient->recvIndex), bytesToReceive, 0);
 	if( r <= 0 )
 	{
+#ifdef _WIN32
 		// receive error, is it a real error or just because of non blocking sockets?
 		if( WSAGetLastError() != WSAEWOULDBLOCK )
 		{
 			xptClient->disconnected = true;
 			return false;
 		}
+#else
+    if(errno != EAGAIN)
+    {
+		xptClient->disconnected = true;
+		return false;
+    }
+#endif
 		return true;
 	}
 	xptClient->recvIndex += r;
@@ -530,7 +614,11 @@ bool xptClient_process(xptClient_t* xptClient)
 			// disconnect
 			if( xptClient->clientSocket != 0 )
 			{
+#ifdef _WIN32
 				closesocket(xptClient->clientSocket);
+#else
+	        close(xptClient->clientSocket);
+#endif
 				xptClient->clientSocket = 0;
 			}
 			xptClient->disconnected = true;
@@ -563,7 +651,13 @@ bool xptClient_isAuthenticated(xptClient_t* xptClient)
 
 void xptClient_foundShare(xptClient_t* xptClient, xptShareToSubmit_t* xptShareToSubmit)
 {
+#ifdef _WIN32
 	EnterCriticalSection(&xptClient->cs_shareSubmit);
 	simpleList_add(xptClient->list_shareSubmitQueue, xptShareToSubmit);
 	LeaveCriticalSection(&xptClient->cs_shareSubmit);
+#else
+  pthread_mutex_lock(&xptClient->cs_shareSubmit);
+  simpleList_add(xptClient->list_shareSubmitQueue, xptShareToSubmit);
+  pthread_mutex_unlock(&xptClient->cs_shareSubmit);
+#endif
 }

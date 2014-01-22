@@ -4,8 +4,12 @@
 #define SEARCH_SPACE_BITS		50
 #define BIRTHDAYS_PER_HASH		8
 
-__declspec(thread) uint32* __collisionMap = NULL;
 
+#ifdef _WIN32
+__declspec( thread ) uint32* __collisionMap = NULL;
+#else
+  uint32* __collisionMap = NULL;
+#endif
 volatile uint32 totalCollisionCount = 0;
 volatile uint32 totalShareCount = 0;
 

@@ -33,7 +33,11 @@ typedef struct
 
 typedef struct  
 {
+#ifdef _WIN32
 	SOCKET clientSocket;
+#else
+    int clientSocket;
+#endif
 	xptPacketbuffer_t* sendBuffer; // buffer for sending data
 	xptPacketbuffer_t* recvBuffer; // buffer for receiving data
 	// worker info
@@ -48,12 +52,20 @@ typedef struct
 	// disconnect info
 	bool disconnected;
 	// work data
+#ifdef _WIN32
 	CRITICAL_SECTION cs_workAccess;
+#else
+  pthread_mutex_t cs_workAccess;
+#endif
 	xptBlockWorkInfo_t blockWorkInfo;
 	bool hasWorkData;
 	float earnedShareValue; // this value is sent by the server with each new block that is sent
 	// shares to submit
+#ifdef _WIN32
 	CRITICAL_SECTION cs_shareSubmit;
+#else
+  pthread_mutex_t cs_shareSubmit;
+#endif
 	simpleList_t* list_shareSubmitQueue;
 	// timers
 	uint32 time_sendPing;

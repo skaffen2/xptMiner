@@ -28,7 +28,8 @@
  */
 
 #include"global.h"
-
+#define __align
+#define _rotl
 static inline uint32 be32dec(const void *pp)
 {
 	const uint8 *p = (uint8 const *)pp;
@@ -312,7 +313,7 @@ static inline void xor_salsa8_org(uint32 B[16], const uint32 Bx[16])
 static inline void xor_salsa8(uint32 B[16], const uint32 Bx[16])
 {
 	//uint32 x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
-	__declspec( align(32) ) uint32 x[16];
+	uint32 x[16];
 	//__m128i* f = (__m128i*)x;
 	int i;
 
@@ -415,7 +416,7 @@ static inline void xor_salsa8(uint32 B[16], const uint32 Bx[16])
 
 static inline void xor_salsa8_doubleround(uint32 B[16], uint32 Bx[16])
 {
-	__declspec( align(32) ) uint32 x[16];
+	uint32 x[16];
 	int i;
 	uint64* B64 = (uint64*)B;
 	uint64* Bx64 = (uint64*)Bx;
@@ -627,17 +628,29 @@ void scrypt_testStuff()
 		B[i] = rand()&0x7FFF;
 		B2[i] = B[i];
 	}
-	//__debugbreak();
+//	 #ifdef _WIN32 		
+//	__debugbreak(); 
+//	  #else 	    
+//	  raise(SIGTRAP); 
+//	  #endif 
 	xor_salsa8(B, Bx);
 	xor_salsa8_org(B2, Bx);
 	if( memcmp(B, B2, 16*4) )
 	{
 		printf("invalid result\n");
-		__debugbreak(); // :(
+#ifdef _WIN32 		
+		__debugbreak(); 
+#else 	    
+		raise(SIGTRAP); 
+#endif  // :(
 	}
 	else
 		printf("valid result\n");
-	//__debugbreak();
+//#ifdef _WIN32 		
+//	__debugbreak(); 
+//#else 	    
+//	raise(SIGTRAP); 
+//#endif 
 
 	// test double round
 	xor_salsa8_org(B, B+16);
@@ -646,7 +659,11 @@ void scrypt_testStuff()
 	if( memcmp(B, B2, 32*4) )
 	{
 		printf("invalid result\n");
-		__debugbreak(); // :(
+#ifdef _WIN32 		
+		__debugbreak(); 
+#else 	    
+		raise(SIGTRAP); 
+#endif  // :(
 	}
 	else
 		printf("valid result\n");

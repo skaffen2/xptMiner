@@ -1,5 +1,7 @@
 #include"global.h"
+#include"ticker.h"
 
+#include <iostream>
 /*
  * Called when a packet with the opcode XPT_OPC_S_AUTH_ACK is received
  */
@@ -215,15 +217,11 @@ bool xptClient_processPacket_ping(xptClient_t* xptClient)
 	if( readError )
 		return false;
 	// get current high precision time and frequency
-	LARGE_INTEGER hpc;
-	LARGE_INTEGER hpcFreq;
-	QueryPerformanceCounter(&hpc);
-	QueryPerformanceFrequency(&hpcFreq);
-	uint64 timestampNow = (uint64)hpc.QuadPart;
+  uint64 timestampNow = getTimeHighRes();
 	// calculate time difference in ms
 	uint64 timeDif = timestampNow - timestamp;
 	timeDif *= 10000ULL;
-	timeDif /= (uint64)hpcFreq.QuadPart;
+	timeDif /= getTimerRes();
 	// update and calculate simple average
 	xptClient->pingSum += timeDif;
 	xptClient->pingCount++;
