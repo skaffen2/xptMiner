@@ -65,6 +65,7 @@ typedef struct
 	uint16 port;
 	char* authUser;
 	char* authPass;
+	float donationPercent;
 }generalRequestTarget_t;
 
 #include"xptServer.h"
@@ -82,6 +83,7 @@ typedef struct
 {
 	generalRequestTarget_t requestTarget;
 	uint32 protoshareMemoryMode;
+	float donationPercent;
 }minerSettings_t;
 
 extern minerSettings_t minerSettings;

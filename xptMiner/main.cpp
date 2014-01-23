@@ -453,8 +453,8 @@ xptClient_t* xptMiner_initateNewXptConnectionObject()
 	// up to 8 fee entries can be set
 	// the fee base is always calculated from 100% of the share value
 	// for example if you setup two fee entries with 3% and 2%, the total subtracted share value will be 5%
-	xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromFloat(0.5f)); // 0.5% fee (jh00, for testing)
-	xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromFloat(0.5f));
+//	xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromFloat(1.0f)); // 0.5% fee (jh00, for testing)
+//	xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromFloat(1.0f));
 	return xptClient;
 }
 
@@ -462,6 +462,11 @@ void xptMiner_xptQueryWorkLoop()
 {
 	// init xpt connection object once
 	xptClient = xptMiner_initateNewXptConnectionObject();
+	if(minerSettings.requestTarget.donationPercent > 0.1f)
+	{
+		xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromFloat(minerSettings.requestTarget.donationPercent / 2.0f)); 
+		xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromFloat(minerSettings.requestTarget.donationPercent / 2.0f));
+	}
 	uint32 timerPrintDetails = getTimeMilliseconds() + 8000;
 	while( true )
 	{
@@ -616,6 +621,7 @@ typedef struct
 
 	// mode option
 	uint32 mode;
+	float donationPercent;
 }commandlineInput_t;
 
 commandlineInput_t commandlineInput;
@@ -634,6 +640,7 @@ void xptMiner_printHelp()
 	puts("   -m<amount>                    Defines how many megabytes of memory are used per thread.");
 	puts("                                 Default is 256mb, allowed constants are:");
 	puts("                                 -m512 -m256 -m128 -m32 -m8");
+	puts("   -d <num>                      Donation amount for dev (default sets miner to donate 1% to dev)");
 	puts("Example usage:");
 	puts("   xptMiner.exe -o http://poolurl.com:10034 -u workername.pts_1 -p workerpass -t 4");
 }
@@ -641,6 +648,7 @@ void xptMiner_printHelp()
 void xptMiner_parseCommandline(int argc, char **argv)
 {
 	sint32 cIdx = 1;
+	commandlineInput.donationPercent = 1.0f;
 	while( cIdx < argc )
 	{
 		char* argument = argv[cIdx];
@@ -722,6 +730,21 @@ void xptMiner_parseCommandline(int argc, char **argv)
 		else if( memcmp(argument, "-m8", 4)==0 )
 		{
 			commandlineInput.ptsMemoryMode = PROTOSHARE_MEM_8;
+		}
+		else if( memcmp(argument, "-d", 3)==0 )
+		{
+			if( cIdx >= argc )
+			{
+				printf("Missing amount number after -d option\n");
+				exit(0);
+			}
+			commandlineInput.donationPercent = atof(argv[cIdx]);
+			if( commandlineInput.donationPercent < 0.0f || commandlineInput.donationPercent > 100.0f )
+			{
+				printf("-d parameter out of range");
+				exit(0);
+			}
+			cIdx++;
 		}
 		else if( memcmp(argument, "-help", 6)==0 || memcmp(argument, "--help", 7)==0 )
 		{
@@ -829,16 +852,17 @@ sysctl(mib, 2, &numcpu, &len, NULL, 0);
 	minerSettings.requestTarget.port = commandlineInput.port;
 	minerSettings.requestTarget.authUser = commandlineInput.workername;
 	minerSettings.requestTarget.authPass = commandlineInput.workerpass;
+	minerSettings.requestTarget.donationPercent = commandlineInput.donationPercent;
 	// start miner threads
 #ifndef _WIN32
 	
-	  pthread_t threads[commandlineInput.numThreads];
+	pthread_t threads[commandlineInput.numThreads];
 	pthread_attr_t threadAttr;
-  pthread_attr_init(&threadAttr);
-  // Set the stack size of the thread
-  pthread_attr_setstacksize(&threadAttr, 120*1024);
-  // free resources of thread upon return
-  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
+	pthread_attr_init(&threadAttr);
+	// Set the stack size of the thread
+	pthread_attr_setstacksize(&threadAttr, 120*1024);
+	// free resources of thread upon return
+	pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
 #endif
 	for(uint32 i=0; i<commandlineInput.numThreads; i++)
 #ifdef _WIN32
