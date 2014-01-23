@@ -6,7 +6,7 @@
 #define MAX_TRANSACTIONS	(4096)
 
 // miner version string (for pool statistic)
-char* minerVersionString = "xptMiner 1.0";
+char* minerVersionString = "xptMiner 1.1clintar";
 
 minerSettings_t minerSettings = {0};
 
@@ -439,7 +439,7 @@ void xptMiner_getWorkFromXPTConnection(xptClient_t* xptClient)
 	monitorCurrentBlockHeight = workDataSource.height;
 }
 
-#define getFeeFromFloat(_x) ((uint16)((float)(_x)/0.002f)) // integer 1 = 0.002%
+#define getFeeFromDouble(_x) ((uint16)((double)(_x)/0.002f)) // integer 1 = 0.002%
 /*
  * Initiates a new xpt connection object and sets up developer fee
  * The new object will be in disconnected state until xptClient_connect() is called
@@ -453,8 +453,8 @@ xptClient_t* xptMiner_initateNewXptConnectionObject()
 	// up to 8 fee entries can be set
 	// the fee base is always calculated from 100% of the share value
 	// for example if you setup two fee entries with 3% and 2%, the total subtracted share value will be 5%
-//	xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromFloat(1.0f)); // 0.5% fee (jh00, for testing)
-//	xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromFloat(1.0f));
+//	xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromDouble(1.0f)); // 0.5% fee (jh00, for testing)
+//	xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromDouble(1.0f));
 	return xptClient;
 }
 
@@ -464,8 +464,8 @@ void xptMiner_xptQueryWorkLoop()
 	xptClient = xptMiner_initateNewXptConnectionObject();
 	if(minerSettings.requestTarget.donationPercent > 0.1f)
 	{
-		xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromFloat(minerSettings.requestTarget.donationPercent / 2.0f)); 
-		xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromFloat(minerSettings.requestTarget.donationPercent / 2.0f));
+		xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0)); 
+		xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0));
 	}
 	uint32 timerPrintDetails = getTimeMilliseconds() + 8000;
 	while( true )
@@ -487,7 +487,7 @@ void xptMiner_xptQueryWorkLoop()
 					}
 					printf("collisions/min: %.4lf Shares total: %d\n", speedRate, totalShareCount);
 				}
-				else if( workDataSource.algorithm == ALGORITHM_SCRYPT || workDataSource.algorithm == ALGORITHM_METISCOIN )
+				else if( workDataSource.algorithm == ALGORITHM_SCRYPT )
 				{
 					// speed is represented as khash/s
 					if( passedSeconds > 5 )
@@ -495,6 +495,15 @@ void xptMiner_xptQueryWorkLoop()
 						speedRate = (double)totalCollisionCount / (double)passedSeconds / 1000.0;
 					}
 					printf("kHash/s: %.2lf Shares total: %d\n", speedRate, totalShareCount);
+				}
+				else if( workDataSource.algorithm == ALGORITHM_METISCOIN )
+				{
+				  // speed is represented as khash/s (in steps of 0x8000)
+				  if( passedSeconds > 5 )
+				  {
+					speedRate = (double)totalCollisionCount * 32768.0 / (double)passedSeconds / 1000.0;
+				  }
+				  printf("kHash/s: %.2lf Shares total: %d\n", speedRate, totalShareCount);
 				}
 
 			}
@@ -769,7 +778,7 @@ int main(int argc, char** argv)
 {
 	commandlineInput.host = "ypool.net";
 	srand(getTimeMilliseconds());
-	commandlineInput.port = 8080 + (rand()%8); // use random port between 8080 and 8088
+	commandlineInput.port = 8080 + (rand()%8); // use random port between 8080 and 8087
 	commandlineInput.ptsMemoryMode = PROTOSHARE_MEM_256;
   uint32_t numcpu = 1; // in case we fall through;	
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
@@ -808,7 +817,7 @@ sysctl(mib, 2, &numcpu, &len, NULL, 0);
 	xptMiner_parseCommandline(argc, argv);
 	minerSettings.protoshareMemoryMode = commandlineInput.ptsMemoryMode;
 	printf("\xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB\n");
-	printf("\xBA  xptMiner (v1.0)                                 \xBA\n");
+	printf("\xBA  xptMiner (v1.1)                                 \xBA\n");
 	printf("\xBA  author: jh00                                    \xBA\n");
 	printf("\xBA  http://ypool.net                                \xBA\n");
 	printf("\xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC\n");
