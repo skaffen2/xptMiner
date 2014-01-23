@@ -1,16 +1,26 @@
 CXX = g++
-CFLAGS = -march=native -Wall -Wextra -std=c++0x -O3 -fomit-frame-pointer 
+CC = cc
+CXXFLAGS = -Wall -Wextra -std=c++0x -O2 -fomit-frame-pointer 
+
+CFLAGS = -Wall -Wextra -O2 -fomit-frame-pointer 
+# add these for more speed! (if your cpu can do them)
+#-msse2 -msse3 -mssse3 -msse4a -msse2avx -msse4a -msse4.1 -msse4.2 -mavx 
+
 
 OSVERSION := $(shell uname -s)
-LIBS = -lgmp -lgmpxx -lcrypto -lssl -pthread
+LIBS = -lcrypto -lssl -pthread
 
 ifeq ($(OSVERSION),Linux)
 	LIBS += -lrt
+	CFLAGS += -march=native
+	CXXFLAGS += -march=native
 endif
 
 ifeq ($(OSVERSION),FreeBSD)
 	CXX = clang++
+	CC = clang
 	CFLAGS += -DHAVE_DECL_LE32DEC
+	CXXFLAGS += -DHAVE_DECL_LE32DEC
 endif
 
 # You might need to edit these paths too
@@ -50,12 +60,15 @@ OBJS = \
 all: xptminer
 
 xptMiner/%.o: xptMiner/%.cpp
-	$(CXX) -c $(CFLAGS) $(INCLUDEPATHS) $< -o $@ 
+	$(CXX) -c $(CXXFLAGS) $(INCLUDEPATHS) $< -o $@ 
+
+xptMiner/%.o: xptMiner/%.c
+	$(CC) -c $(CFLAGS) $(INCLUDEPATHS) $< -o $@ 
 
 xptminer: $(OBJS:xptMiner/%=xptMiner/%) $(JHLIB:xptMiner/jhlib/%=xptMiner/jhlib/%)
 	$(CXX) $(CFLAGS) $(LIBPATHS) $(INCLUDEPATHS) -o $@ $^ $(LIBS)
 
 clean:
-	-rm -f jhprimeminer
+	-rm -f xptminer
 	-rm -f xptMiner/*.o
 	-rm -f xptMiner/jhlib/*.o
