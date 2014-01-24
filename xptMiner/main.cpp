@@ -462,7 +462,6 @@ void xptMiner_xptQueryWorkLoop()
 {
 	// init xpt connection object once
 	xptClient = xptMiner_initateNewXptConnectionObject();
-	Sleep(3);
 	if(minerSettings.requestTarget.donationPercent > 0.1f)
 	{
 		xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0)); 
@@ -613,7 +612,7 @@ void xptMiner_xptQueryWorkLoop()
 				miningStartTime = (uint32)time(NULL);
 				totalCollisionCount = 0;
 			}
-			Sleep(3);
+			Sleep(1);
 		}
 	}
 }
