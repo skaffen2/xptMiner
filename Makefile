@@ -60,7 +60,7 @@ OBJS = \
 	xptMiner/xptServerPacketHandler.o \
 	xptMiner/transaction.o \
 
-all: xptminer
+all: xptminer$(EXTENSION)
 
 xptMiner/%.o: xptMiner/%.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCLUDEPATHS) $< -o $@ 
