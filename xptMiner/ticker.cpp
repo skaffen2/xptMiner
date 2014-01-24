@@ -28,7 +28,7 @@ uint64_t getTimeHighRes(void) {
   mach_timebase_info(&convfact); // get ticks->nanoseconds conversion factor
   // get time in nanoseconds since computer was booted
   // the measurement is different per core
-  uint64_t timestamp = mach_absolute_time();
+   timestamp = mach_absolute_time();
 #elif defined(_WIN32)
 
   LARGE_INTEGER hpc;
@@ -46,14 +46,19 @@ uint64_t getTimeHighRes(void) {
 
 uint64_t getTimerRes(void) {
 	uint64_t resolution = 0;
-#ifdef WIN32
+#if (defined(__MACH__) && defined(__APPLE__))
+  struct mach_timebase_info convfact;
+  mach_timebase_info(&convfact);
+  resolution = convfact.numer / convfact.denom;
+#elif defined(_WIN32)
   LARGE_INTEGER hpcFreq;
   QueryPerformanceFrequency(&hpcFreq);
-  return (uint64_t)hpcFreq.QuadPart;
-#else
-    struct timespec t_res;
+  resolution =  (uint64_t)hpcFreq.QuadPart;
+#elif defined(__unix__)
+  struct timespec t_res;
   clock_getres(CLOCK_MONOTONIC, &t_res);
   resolution = t_res.tv_nsec + t_res.tv_sec * 1000000000;
   return resolution;
-#endif  
+#endif
+  return resolution;
 }
