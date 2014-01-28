@@ -628,29 +628,19 @@ void scrypt_testStuff()
 		B[i] = rand()&0x7FFF;
 		B2[i] = B[i];
 	}
-//	 #ifdef _WIN32 		
 //	__debugbreak(); 
-//	  #else 	    
-//	  raise(SIGTRAP); 
-//	  #endif 
 	xor_salsa8(B, Bx);
 	xor_salsa8_org(B2, Bx);
 	if( memcmp(B, B2, 16*4) )
 	{
 		printf("invalid result\n");
-#ifdef _WIN32 		
-		__debugbreak(); 
-#else 	    
-		raise(SIGTRAP); 
-#endif  // :(
+
+		__debugbreak(); // :(
 	}
 	else
 		printf("valid result\n");
-//#ifdef _WIN32 		
 //	__debugbreak(); 
-//#else 	    
-//	raise(SIGTRAP); 
-//#endif 
+
 
 	// test double round
 	xor_salsa8_org(B, B+16);
@@ -659,11 +649,7 @@ void scrypt_testStuff()
 	if( memcmp(B, B2, 32*4) )
 	{
 		printf("invalid result\n");
-#ifdef _WIN32 		
-		__debugbreak(); 
-#else 	    
-		raise(SIGTRAP); 
-#endif  // :(
+		__debugbreak();  // :(
 	}
 	else
 		printf("valid result\n");

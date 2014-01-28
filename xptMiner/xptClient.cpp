@@ -53,20 +53,13 @@ xptClient_t* xptClient_create()
 	memset(xptClient, 0x00, sizeof(xptClient_t));
 	// initialize object
 	xptClient->disconnected = true;
-#ifdef _WIN32
 	xptClient->clientSocket = SOCKET_ERROR;
-#else
-  xptClient->clientSocket = 0;
-#endif
+
 	xptClient->sendBuffer = xptPacketbuffer_create(256*1024);
 	xptClient->recvBuffer = xptPacketbuffer_create(256*1024);
-#ifdef _WIN32
+
 	InitializeCriticalSection(&xptClient->cs_shareSubmit);
 	InitializeCriticalSection(&xptClient->cs_workAccess);
-#else
-  pthread_mutex_init(&xptClient->cs_shareSubmit, NULL);
-  pthread_mutex_init(&xptClient->cs_workAccess, NULL);
-#endif
 	xptClient->list_shareSubmitQueue = simpleList_create(4);
 	// return object
 	return xptClient;
@@ -127,17 +120,10 @@ void xptClient_forceDisconnect(xptClient_t* xptClient)
 	if( xptClient->disconnected )
 		return; // already disconnected
 
-	  #ifdef _WIN32
 	if( xptClient->clientSocket != SOCKET_ERROR )
 	{
 		closesocket(xptClient->clientSocket);
 		xptClient->clientSocket = SOCKET_ERROR;
-#else
-  if( xptClient->clientSocket != 0 )
-  {
-    close(xptClient->clientSocket);
-	xptClient->clientSocket = 0;
-#endif
     
 	}
 	xptClient->disconnected = true;
@@ -153,17 +139,10 @@ void xptClient_free(xptClient_t* xptClient)
 	xptPacketbuffer_free(xptClient->sendBuffer);
 	xptPacketbuffer_free(xptClient->recvBuffer);
 	
-#ifdef _WIN32
 	if( xptClient->clientSocket != SOCKET_ERROR )
 	{
 		closesocket(xptClient->clientSocket);
 	}
-#else
-	if( xptClient->clientSocket != 0 )
-	{
-    close(xptClient->clientSocket);
-	}
-#endif
 	
 	simpleList_free(xptClient->list_shareSubmitQueue);
 	free(xptClient);
@@ -330,7 +309,7 @@ void xptClient_addDeveloperFeeEntry(xptClient_t* xptClient, char* walletAddress,
 	sha256_final(&s256c, addressHash);
 	sha256_init(&s256c);
 	sha256_update(&s256c, addressHash, 32);
-	sha256_final(&s256c, addressHash);
+	sha256_final(&s256c, addressHash);	
 	if( *(uint32*)(walletAddressRaw+21) != *(uint32*)addressHash )
 	{
 		printf("xptClient_addDeveloperFeeEntry(): Invalid checksum\n");
@@ -520,11 +499,8 @@ bool xptClient_process(xptClient_t* xptClient)
 	if( xptClient == NULL )
 		return false;
 	// are there shares to submit?
-#ifdef _WIN32
+
 	EnterCriticalSection(&xptClient->cs_shareSubmit);
-#else
-    pthread_mutex_lock(&xptClient->cs_shareSubmit);
-#endif
 	if( xptClient->list_shareSubmitQueue->objectCount > 0 )
 	{
 		for(uint32 i=0; i<xptClient->list_shareSubmitQueue->objectCount; i++)
@@ -536,11 +512,7 @@ bool xptClient_process(xptClient_t* xptClient)
 		// clear list
 		xptClient->list_shareSubmitQueue->objectCount = 0;
 	}
-#ifdef _WIN32
 	LeaveCriticalSection(&xptClient->cs_shareSubmit);
-#else
-  pthread_mutex_unlock(&xptClient->cs_shareSubmit);
-#endif
 	// check if we need to send ping
 	uint32 currentTime = (uint32)time(NULL);
 	if( xptClient->time_sendPing != 0 && currentTime >= xptClient->time_sendPing )
@@ -609,11 +581,7 @@ bool xptClient_process(xptClient_t* xptClient)
 			// disconnect
 			if( xptClient->clientSocket != 0 )
 			{
-#ifdef _WIN32
 				closesocket(xptClient->clientSocket);
-#else
-	        close(xptClient->clientSocket);
-#endif
 				xptClient->clientSocket = 0;
 			}
 			xptClient->disconnected = true;
@@ -646,13 +614,7 @@ bool xptClient_isAuthenticated(xptClient_t* xptClient)
 
 void xptClient_foundShare(xptClient_t* xptClient, xptShareToSubmit_t* xptShareToSubmit)
 {
-#ifdef _WIN32
 	EnterCriticalSection(&xptClient->cs_shareSubmit);
 	simpleList_add(xptClient->list_shareSubmitQueue, xptShareToSubmit);
 	LeaveCriticalSection(&xptClient->cs_shareSubmit);
-#else
-  pthread_mutex_lock(&xptClient->cs_shareSubmit);
-  simpleList_add(xptClient->list_shareSubmitQueue, xptShareToSubmit);
-  pthread_mutex_unlock(&xptClient->cs_shareSubmit);
-#endif
 }

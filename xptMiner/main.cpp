@@ -11,20 +11,12 @@ char* minerVersionString = "xptMiner 1.1clintar";
 minerSettings_t minerSettings = {0};
 
 xptClient_t* xptClient = NULL;
-#ifdef _WIN32
 CRITICAL_SECTION cs_xptClient;
-#else
-  pthread_mutex_t cs_xptClient;
-#endif
   volatile uint32 monitorCurrentBlockHeight; // used to notify worker threads of new block data
 
 struct  
 {
-#ifdef _WIN32
 	CRITICAL_SECTION cs_work;
-#else
-  pthread_mutex_t cs_work;
-#endif
 
 	uint32	algorithm;
 	// block data
@@ -55,20 +47,11 @@ uint32 miningStartTime = 0;
 void xptMiner_submitShare(minerProtosharesBlock_t* block)
 {
 	printf("Share found! (Blockheight: %d)\n", block->height);
-#ifdef _WIN32
 	EnterCriticalSection(&cs_xptClient);
-#else
-	    pthread_mutex_lock(&cs_xptClient);
-#endif
 	if( xptClient == NULL || xptClient_isDisconnected(xptClient, NULL) == true )
 	{
 		printf("Share submission failed - No connection to server\n");
-#ifdef _WIN32
-      LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
-
+        LeaveCriticalSection(&cs_xptClient);
 		return;
 	}
 	// submit block
@@ -90,12 +73,7 @@ void xptMiner_submitShare(minerProtosharesBlock_t* block)
 	xptShare->userExtraNonceLength = userExtraNonceLength;
 	memcpy(xptShare->userExtraNonceData, userExtraNonceData, userExtraNonceLength);
 	xptClient_foundShare(xptClient, xptShare);
-#ifdef _WIN32
-      LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
-
+    LeaveCriticalSection(&cs_xptClient);
 }
 
 /*
@@ -104,19 +82,11 @@ void xptMiner_submitShare(minerProtosharesBlock_t* block)
 void xptMiner_submitShare(minerScryptBlock_t* block)
 {
 	printf("Share found! (Blockheight: %d)\n", block->height);
-#ifdef _WIN32
 	EnterCriticalSection(&cs_xptClient);
-#else
-	    pthread_mutex_lock(&cs_xptClient);
-#endif
 	if( xptClient == NULL || xptClient_isDisconnected(xptClient, NULL) == true )
 	{
 		printf("Share submission failed - No connection to server\n");
-#ifdef _WIN32
 		LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 		return;
 	}
 	// submit block
@@ -136,11 +106,7 @@ void xptMiner_submitShare(minerScryptBlock_t* block)
 	xptShare->userExtraNonceLength = userExtraNonceLength;
 	memcpy(xptShare->userExtraNonceData, userExtraNonceData, userExtraNonceLength);
 	xptClient_foundShare(xptClient, xptShare);
-#ifdef _WIN32
 	LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 }
 
 /*
@@ -149,20 +115,12 @@ void xptMiner_submitShare(minerScryptBlock_t* block)
 void xptMiner_submitShare(minerPrimecoinBlock_t* block)
 {
 	printf("Share found! (Blockheight: %d)\n", block->height);
-#ifdef _WIN32
 	EnterCriticalSection(&cs_xptClient);
-#else
-	    pthread_mutex_lock(&cs_xptClient);
-#endif
 	
 	if( xptClient == NULL || xptClient_isDisconnected(xptClient, NULL) == true )
 	{
 		printf("Share submission failed - No connection to server\n");
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 
 		return;
 	}
@@ -182,17 +140,9 @@ void xptMiner_submitShare(minerPrimecoinBlock_t* block)
 	uint8* userExtraNonceData = (uint8*)&block->uniqueMerkleSeed;
 	xptShare->userExtraNonceLength = userExtraNonceLength;
 	memcpy(xptShare->userExtraNonceData, userExtraNonceData, userExtraNonceLength);
-#ifdef _WIN32 		
 	__debugbreak(); 
-#else 	    
-	raise(SIGTRAP); 
-#endif  // xpm submission still todo
 	xptClient_foundShare(xptClient, xptShare);
-#ifdef _WIN32
-      LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
+    LeaveCriticalSection(&cs_xptClient);
 
 }
 
@@ -202,20 +152,12 @@ void xptMiner_submitShare(minerPrimecoinBlock_t* block)
 void xptMiner_submitShare(minerMetiscoinBlock_t* block)
 {
 	printf("Share found! (Blockheight: %d)\n", block->height);
-#ifdef _WIN32
 	EnterCriticalSection(&cs_xptClient);
-#else
-	    pthread_mutex_lock(&cs_xptClient);
-#endif
 
 	if( xptClient == NULL || xptClient_isDisconnected(xptClient, NULL) == true )
 	{
 		printf("Share submission failed - No connection to server\n");
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 		return;
 	}
 	// submit block
@@ -234,11 +176,7 @@ void xptMiner_submitShare(minerMetiscoinBlock_t* block)
 	xptShare->userExtraNonceLength = userExtraNonceLength;
 	memcpy(xptShare->userExtraNonceData, userExtraNonceData, userExtraNonceLength);
 	xptClient_foundShare(xptClient, xptShare);
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 }
 #ifdef _WIN32
 int xptMiner_minerThread(int threadIndex)
@@ -256,11 +194,7 @@ void *xptMiner_minerThread(void *arg)
 	{
 		// has work?
 		bool hasValidWork = false;
-#ifdef _WIN32
 		EnterCriticalSection(&workDataSource.cs_work);
-#else
-    pthread_mutex_unlock(&workDataSource.cs_work);
-#endif
 		if( workDataSource.height > 0 )
 		{
 			if( workDataSource.algorithm == ALGORITHM_PROTOSHARES )
@@ -336,11 +270,7 @@ void *xptMiner_minerThread(void *arg)
 				hasValidWork = true;
 			}
 		}
-#ifdef _WIN32
       LeaveCriticalSection(&workDataSource.cs_work);
-#else
-    pthread_mutex_unlock(&workDataSource.cs_work);
-#endif
 		if( hasValidWork == false )
 		{
 			Sleep(1);
@@ -399,11 +329,7 @@ void *xptMiner_minerThread(void *arg)
  */
 void xptMiner_getWorkFromXPTConnection(xptClient_t* xptClient)
 {
-#ifdef _WIN32
 	EnterCriticalSection(&workDataSource.cs_work);
-#else
-	    pthread_mutex_lock(&workDataSource.cs_work);
-#endif
 	workDataSource.algorithm = xptClient->algorithm;
 	workDataSource.version = xptClient->blockWorkInfo.version;
 	workDataSource.timeBias = xptClient->blockWorkInfo.timeBias;
@@ -431,11 +357,7 @@ void xptMiner_getWorkFromXPTConnection(xptClient_t* xptClient)
 	// set blockheight last since it triggers reload of work
 	workDataSource.height = xptClient->blockWorkInfo.height;
 	
-#ifdef _WIN32
       LeaveCriticalSection(&workDataSource.cs_work);
-#else
-    pthread_mutex_unlock(&workDataSource.cs_work);
-#endif
 	monitorCurrentBlockHeight = workDataSource.height;
 }
 
@@ -512,36 +434,20 @@ void xptMiner_xptQueryWorkLoop()
 		// check stats
 		if( xptClient_isDisconnected(xptClient, NULL) == false )
 		{
-#ifdef _WIN32
 	EnterCriticalSection(&cs_xptClient);
-#else
-	    pthread_mutex_lock(&cs_xptClient);
-#endif
 
 			xptClient_process(xptClient);
 			if( xptClient->disconnected )
 			{
 				// mark work as invalid
-#ifdef _WIN32
 	EnterCriticalSection(&workDataSource.cs_work);
-#else
-	    pthread_mutex_lock(&workDataSource.cs_work);
-#endif
 				workDataSource.height = 0;
 				monitorCurrentBlockHeight = 0;
-#ifdef _WIN32
       LeaveCriticalSection(&workDataSource.cs_work);
-#else
-    pthread_mutex_unlock(&workDataSource.cs_work);
-#endif
 				// we lost connection :(
 				printf("Connection to server lost - Reconnect in 45 seconds\n");
 				xptClient_forceDisconnect(xptClient);
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 				// pause 45 seconds
 				Sleep(45000);
 			}
@@ -556,11 +462,7 @@ void xptMiner_xptQueryWorkLoop()
 					//xptClient_free(xptClient);
 					//xptClient = NULL;
 					xptClient_forceDisconnect(xptClient);
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 					// pause 45 seconds
 					Sleep(45000);
 				}
@@ -568,46 +470,26 @@ void xptMiner_xptQueryWorkLoop()
 				{
 					// update work
 					xptMiner_getWorkFromXPTConnection(xptClient);
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 				}
 				else
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 				Sleep(1);
 			}
 		}
 		else
 		{
 			// initiate new connection
-#ifdef _WIN32
 	EnterCriticalSection(&cs_xptClient);
-#else
-	    pthread_mutex_lock(&cs_xptClient);
-#endif
 			if( xptClient_connect(xptClient, &minerSettings.requestTarget) == false )
 			{
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 				printf("Connection attempt failed, retry in 45 seconds\n");
 				Sleep(45000);
 			}
 			else
 			{
-#ifdef _WIN32
       LeaveCriticalSection(&cs_xptClient);
-#else
-    pthread_mutex_unlock(&cs_xptClient);
-#endif
 				printf("Connected to server using x.pushthrough(xpt) protocol\n");
 				miningStartTime = (uint32)time(NULL);
 				totalCollisionCount = 0;
@@ -851,13 +733,8 @@ sysctl(mib, 2, &numcpu, &len, NULL, 0);
 	char* ipText = (char*)malloc(32);
 	sprintf(ipText, "%d.%d.%d.%d", ((ip>>0)&0xFF), ((ip>>8)&0xFF), ((ip>>16)&0xFF), ((ip>>24)&0xFF));
 	// init work source
-#ifdef _WIN32
 	InitializeCriticalSection(&workDataSource.cs_work);
 	InitializeCriticalSection(&cs_xptClient);
-	#else
-  pthread_mutex_init(&cs_xptClient, NULL);
-  pthread_mutex_init(&workDataSource.cs_work, NULL);
-#endif
 	// setup connection info
 	minerSettings.requestTarget.ip = ipText;
 	minerSettings.requestTarget.port = commandlineInput.port;

@@ -2,14 +2,7 @@
 #include "ticker.h"
 #include <iostream>
 
-#ifndef _WIN32
-// lazy workaround
-typedef int SOCKET;
-typedef struct sockaddr_in SOCKADDR_IN;
-typedef struct sockaddr SOCKADDR;
-#define SOCKET_ERROR -1
-#define closesocket close
-#endif
+
 
 /*
  * Creates a new x.pushthrough server instance that listens on the specified port

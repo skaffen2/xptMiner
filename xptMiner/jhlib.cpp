@@ -596,12 +596,7 @@ uint32 streamEx_substream_readData(void *object, void *buffer, uint32 len)
 
 uint32 streamEx_substream_writeData(void *object, void *buffer, uint32 len)
 {	
-	#ifdef _WIN32 		
 	__debugbreak(); 
-#else 	    
-	raise(SIGTRAP); 
-#endif  // no write access for substreams?
-	return 0;
 }
 
 uint32 streamEx_substream_getSize(void *object)
@@ -612,11 +607,8 @@ uint32 streamEx_substream_getSize(void *object)
 
 void streamEx_substream_setSize(void *object, uint32 size)
 {
-	#ifdef _WIN32 		
+		
 	__debugbreak(); 
-#else 	    
-	raise(SIGTRAP); 
-#endif  // not implemented 
 }
 
 uint32 streamEx_substream_getSeek(void *object)

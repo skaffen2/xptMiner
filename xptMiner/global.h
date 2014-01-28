@@ -25,14 +25,25 @@ typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 
 #else
-
+// Windows-isms for compatibility in Linux
 #define RtlZeroMemory(Destination,Length) std::memset((Destination),0,(Length))
 #define RtlCopyMemory(Destination,Source,Length) std::memcpy((Destination),(Source),(Length))
 
 #define _strdup(duration) strdup(duration)
 #define Sleep(ms) usleep(1000*ms)
 #define strcpy_s(dest,val,src) strncopy(dest,src,val)
+#define __debugbreak(); raise(SIGTRAP);
+#define CRITICAL_SECTION pthread_mutex_t
+#define EnterCriticalSection(Section) pthread_mutex_unlock(Section)
+#define LeaveCriticalSection(Section) pthread_mutex_unlock(Section)
+#define InitializeCriticalSection(Section) pthread_mutex_init(Section, NULL)
 
+// lazy workaround
+typedef int SOCKET;
+typedef struct sockaddr_in SOCKADDR_IN;
+typedef struct sockaddr SOCKADDR;
+#define SOCKET_ERROR -1
+#define closesocket close
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>

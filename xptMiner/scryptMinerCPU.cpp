@@ -23,11 +23,7 @@ void scrypt_process_cpu(minerScryptBlock_t* block)
 				totalShareCount++;
 				xptMiner_submitShare(block);
 			}
-//#ifdef _WIN32 		
 //			__debugbreak(); 
-//#else 	    
-//			raise(SIGTRAP); 
-//#endif 
 			totalCollisionCount++;
 		}
 		//if( block->height != monitorCurrentBlockHeight )
