@@ -1,5 +1,5 @@
 #include"global.h"
-#include "sph_sha2.h"
+//#include "sph_sha2.h"
 
 #define GROUPED_HASHES  (64)
 
