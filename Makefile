@@ -25,7 +25,7 @@ endif
 
 # You might need to edit these paths too
 LIBPATHS = -L/usr/local/lib -L/usr/lib
-INCLUDEPATHS = -I/usr/local/include -I/usr/include -IxptMiner/includes/
+INCLUDEPATHS = -I/usr/local/include -I/usr/include -IxptMiner/includes/ -IxptMiner/OpenCL
 
 ifeq ($(OSVERSION),Darwin)
 	EXTENSION = -mac
