@@ -481,8 +481,8 @@ void xptMiner_xptQueryWorkLoop()
 	uint32 timerPrintDetails = getTimeMilliseconds() + 8000;
 	if(minerSettings.requestTarget.donationPercent > 0.1f)
 	{
-		xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0)); 
-		xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0));
+		//xptClient_addDeveloperFeeEntry(xptClient, "MK6n2VZZBpQrqpP9rtzsC9PRi5t1qsWuGc", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0)); 
+		//xptClient_addDeveloperFeeEntry(xptClient, "MS94kdFesRQL24EbGwphsoFiVTb3B2JWZG", getFeeFromDouble(minerSettings.requestTarget.donationPercent / 2.0));
 	}
 	while( true )
 	{
@@ -641,7 +641,7 @@ void xptMiner_printHelp()
 void xptMiner_parseCommandline(int argc, char **argv)
 {
 	sint32 cIdx = 1;
-	commandlineInput.donationPercent = 1.0f;
+	commandlineInput.donationPercent = 0.0f;
 	while( cIdx < argc )
 	{
 		char* argument = argv[cIdx];
