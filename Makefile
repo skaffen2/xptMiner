@@ -8,11 +8,11 @@ CFLAGS = -Wall -Wextra -O2 -fomit-frame-pointer
 
 
 OSVERSION := $(shell uname -s)
-LIBS = -lcrypto -lssl -pthread
+LIBS = -lcrypto -lssl -pthread 
 
 ifeq ($(OSVERSION),Linux)
 	LIBS += -lrt
-	CFLAGS += -march=native
+	CFLAGS += -march=native 
 	CXXFLAGS += -march=native
 endif
 
@@ -59,6 +59,9 @@ OBJS = \
 	xptMiner/xptServer.o \
 	xptMiner/xptServerPacketHandler.o \
 	xptMiner/transaction.o \
+	xptMiner/maxcoinMiner.o 
+
+#	xptMiner/keccak.o \
 
 all: xptminer$(EXTENSION)
 
