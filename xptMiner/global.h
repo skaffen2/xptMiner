@@ -6,6 +6,8 @@
 #pragma comment(lib,"Ws2_32.lib")
 #include<Winsock2.h>
 #include<ws2tcpip.h>
+#include"mpir/mpir.h"
+
 typedef __int64           sint64;
 typedef unsigned __int64  uint64;
 typedef __int32           sint32;
@@ -25,6 +27,8 @@ typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 
 #else
+#include <gmpxx.h>
+#include <gmp.h>
 // Windows-isms for compatibility in Linux
 #define RtlZeroMemory(Destination,Length) std::memset((Destination),0,(Length))
 #define RtlCopyMemory(Destination,Source,Length) std::memcpy((Destination),(Source),(Length))
@@ -57,6 +61,24 @@ typedef struct sockaddr SOCKADDR;
 
 #endif
 
+#ifndef thread_local
+# if __STDC_VERSION__ >= 201112 && !defined __STDC_NO_THREADS__
+#  define thread_local _Thread_local
+# elif defined _WIN32 && ( \
+       defined _MSC_VER || \
+       defined __ICL || \
+       defined __DMC__ || \
+       defined __BORLANDC__ )
+#  define thread_local __declspec(thread) 
+/* note that ICC (linux) and Clang are covered by __GNUC__ */
+# elif defined __GNUC__ || \
+       defined __SUNPRO_C || \
+       defined __xlC__
+#  define thread_local __thread
+# else
+#  error "Cannot define thread_local"
+# endif
+#endif
 
 #include<stdio.h>
 #include<time.h>
@@ -68,7 +90,7 @@ typedef struct sockaddr SOCKADDR;
 
 #include"jhlib.h" // slim version of jh library
 
-#include"CL/opencl.h"
+#include"openCL.h"
 
 // connection info for xpt
 typedef struct  
@@ -200,20 +222,46 @@ typedef struct
 	uint8	targetShare[32];
 }minerMaxcoinBlock_t; // identical to scryptBlock
 
+
+typedef struct  
+{
+	// block data (order and memory layout is important)
+	uint32	version;
+	uint8	prevBlockHash[32];
+	uint8	merkleRoot[32];
+	uint32	nBits; // Riecoin has order of nBits and nTime exchanged
+	uint64	nTime; // Riecoin has 64bit timestamps
+	uint8	nOffset[32];
+	// remaining data
+	uint32	uniqueMerkleSeed;
+	uint32	height;
+	uint8	merkleRootOriginal[32]; // used to identify work
+	// uint8	target[32];
+	// uint8	targetShare[32];
+	// compact target
+	uint32  targetCompact;
+	uint32  shareTargetCompact;
+}minerRiecoinBlock_t;
+
 #include"scrypt.h"
 #include"algorithm.h"
-#include"CL/opencl.h"
+#include"openCL.h"
 
 void xptMiner_submitShare(minerProtosharesBlock_t* block);
 void xptMiner_submitShare(minerScryptBlock_t* block);
 void xptMiner_submitShare(minerPrimecoinBlock_t* block);
 void xptMiner_submitShare(minerMetiscoinBlock_t* block);
 void xptMiner_submitShare(minerMaxcoinBlock_t* block);
+void xptMiner_submitShare(minerRiecoinBlock_t* block, uint8* nOffset);
 
 // stats
 extern volatile uint32 totalCollisionCount;
 extern volatile uint32 totalShareCount;
 extern volatile uint32 totalRejectedShareCount;
+extern volatile uint32 total2ChainCount;
+extern volatile uint32 total3ChainCount;
+extern volatile uint32 total4ChainCount;
+
 
 extern volatile uint32 monitorCurrentBlockHeight;
 extern volatile uint32 monitorCurrentBlockTime;

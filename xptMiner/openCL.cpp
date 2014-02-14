@@ -180,7 +180,9 @@ void openCL_init()
 		return;
 	printf("Init OpenCL...\n");
 	openCLInited = true;
+#ifdef _WIN32
 	HMODULE openCLModule = LoadLibraryA("opencl.dll");
+#endif
 	if( openCLModule == NULL )
 	{
 		printf("Failed to load OpenCL :(\n");

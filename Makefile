@@ -1,14 +1,14 @@
 CXX = g++
 CC = cc
-CXXFLAGS = -Wall -Wextra -std=c++0x -O2 -fomit-frame-pointer 
+CXXFLAGS = -Wall -Wextra -std=c++0x -O2 -fomit-frame-pointer
 
-CFLAGS = -Wall -Wextra -O2 -fomit-frame-pointer 
+CFLAGS = -Wall -Wextra -O2 -fomit-frame-pointer
 # add these for more speed! (if your cpu can do them)
 #-msse2 -msse3 -mssse3 -msse4a -msse2avx -msse4a -msse4.1 -msse4.2 -mavx 
 
 
 OSVERSION := $(shell uname -s)
-LIBS = -lcrypto -lssl -pthread 
+LIBS = -lcrypto -lssl -pthread -lgmp -lgmpxx
 
 ifeq ($(OSVERSION),Linux)
 	LIBS += -lrt
@@ -51,7 +51,6 @@ OBJS = \
 	xptMiner/keccak.o \
 	xptMiner/metis.o \
 	xptMiner/shavite.o \
-	xptMiner/metiscoinMiner.o \
 	xptMiner/scrypt.o \
 	xptMiner/scryptMinerCPU.o \
 	xptMiner/xptClientPacketHandler.o \
@@ -59,8 +58,12 @@ OBJS = \
 	xptMiner/xptServer.o \
 	xptMiner/xptServerPacketHandler.o \
 	xptMiner/transaction.o \
-	xptMiner/maxcoinMiner.o 
-
+	xptMiner/maxcoinMiner.o \
+	xptMiner/riecoinMiner.o \
+	xptMiner/metiscoinMiner.o 
+#	xptMiner/maxcoinMinerCL.o \
+#	xptMiner/OpenCLObjects.o \
+#	xptMiner/openCL.o \
 #	xptMiner/keccak.o \
 
 all: xptminer$(EXTENSION)

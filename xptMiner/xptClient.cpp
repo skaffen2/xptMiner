@@ -10,9 +10,9 @@
 #define SHA2_TYPES
 #include "sha2.h"
 /*
-  * Tries to establish a connection to the given ip:port
-  * Uses a blocking connect operation
-  */
+ * Tries to establish a connection to the given ip:port
+ * Uses a blocking connect operation
+ */
 #ifdef _WIN32
 SOCKET xptClient_openConnection(char *IP, int Port)
 {
@@ -56,10 +56,8 @@ xptClient_t* xptClient_create()
 	// initialize object
 	xptClient->disconnected = true;
 	xptClient->clientSocket = SOCKET_ERROR;
-
 	xptClient->sendBuffer = xptPacketbuffer_create(256*1024);
 	xptClient->recvBuffer = xptPacketbuffer_create(256*1024);
-
 	InitializeCriticalSection(&xptClient->cs_shareSubmit);
 	InitializeCriticalSection(&xptClient->cs_workAccess);
 	xptClient->list_shareSubmitQueue = simpleList_create(4);
@@ -121,12 +119,10 @@ void xptClient_forceDisconnect(xptClient_t* xptClient)
 {
 	if( xptClient->disconnected )
 		return; // already disconnected
-
 	if( xptClient->clientSocket != SOCKET_ERROR )
 	{
 		closesocket(xptClient->clientSocket);
 		xptClient->clientSocket = SOCKET_ERROR;
-    
 	}
 	xptClient->disconnected = true;
 	// mark work as unavailable
@@ -140,12 +136,10 @@ void xptClient_free(xptClient_t* xptClient)
 {
 	xptPacketbuffer_free(xptClient->sendBuffer);
 	xptPacketbuffer_free(xptClient->recvBuffer);
-	
 	if( xptClient->clientSocket != SOCKET_ERROR )
 	{
 		closesocket(xptClient->clientSocket);
 	}
-	
 	simpleList_free(xptClient->list_shareSubmitQueue);
 	free(xptClient);
 }
@@ -288,7 +282,7 @@ bool xptClient_decodeBase58(char* base58Input, sint32 inputLength, uint8* dataOu
  * You may want to consider re-implementing this mechanism in a different way if you plan to
  * have at least some basic level of protection from reverse engineers that try to remove your fee (if closed source)
  */
-void xptClient_addDeveloperFeeEntry(xptClient_t* xptClient, char* walletAddress, uint16 integerFee)
+void xptClient_addDeveloperFeeEntry(xptClient_t* xptClient, char* walletAddress, uint16 integerFee, bool isMaxCoinAddress)
 {
 	uint8 walletAddressRaw[256];
 	sint32 walletAddressRawLength = sizeof(walletAddressRaw);
@@ -305,13 +299,24 @@ void xptClient_addDeveloperFeeEntry(xptClient_t* xptClient, char* walletAddress,
 	}
 	// validate checksum
 	uint8 addressHash[32];
-	sha256_ctx s256c;
-	sha256_init(&s256c);
-	sha256_update(&s256c, walletAddressRaw, walletAddressRawLength-4);
-	sha256_final(&s256c, addressHash);
-	sha256_init(&s256c);
-	sha256_update(&s256c, addressHash, 32);
-	sha256_final(&s256c, addressHash);
+	if( isMaxCoinAddress )
+	{
+		// MaxCoin uses Keccak for wallet address checksum
+		sph_keccak256_context keccak256_ctx;
+		sph_keccak256_init(&keccak256_ctx);
+		sph_keccak256(&keccak256_ctx, walletAddressRaw, walletAddressRawLength-4);
+		sph_keccak256_close(&keccak256_ctx, addressHash);
+	}
+	else
+	{
+		sha256_ctx s256c;
+		sha256_init(&s256c);
+		sha256_update(&s256c, walletAddressRaw, walletAddressRawLength-4);
+		sha256_final(&s256c, addressHash);
+		sha256_init(&s256c);
+		sha256_update(&s256c, addressHash, 32);
+		sha256_final(&s256c, addressHash);
+	}
 	if( *(uint32*)(walletAddressRaw+21) != *(uint32*)addressHash )
 	{
 		printf("xptClient_addDeveloperFeeEntry(): Invalid checksum\n");
@@ -444,6 +449,16 @@ void xptClient_sendShare(xptClient_t* xptClient, xptShareToSubmit_t* xptShareToS
 		xptPacketbuffer_writeU8(xptClient->sendBuffer, &sendError, xptShareToSubmit->userExtraNonceLength);
 		xptPacketbuffer_writeData(xptClient->sendBuffer, xptShareToSubmit->userExtraNonceData, xptShareToSubmit->userExtraNonceLength, &sendError);
 	}
+	else if( xptShareToSubmit->algorithm == ALGORITHM_RIECOIN )
+	{
+		// nOffset
+		xptPacketbuffer_writeData(xptClient->sendBuffer, xptShareToSubmit->riecoin_nOffset, 32, &sendError);
+		// original merkleroot (used to identify work)
+		xptPacketbuffer_writeData(xptClient->sendBuffer, xptShareToSubmit->merkleRootOriginal, 32, &sendError);
+		// user extra nonce (up to 16 bytes)
+		xptPacketbuffer_writeU8(xptClient->sendBuffer, &sendError, xptShareToSubmit->userExtraNonceLength);
+		xptPacketbuffer_writeData(xptClient->sendBuffer, xptShareToSubmit->userExtraNonceData, xptShareToSubmit->userExtraNonceLength, &sendError);
+	}
 	// share id (server sends this back in shareAck, so we can identify share response)
 	xptPacketbuffer_writeU32(xptClient->sendBuffer, &sendError, 0);
 	// finalize
@@ -501,7 +516,6 @@ bool xptClient_process(xptClient_t* xptClient)
 	if( xptClient == NULL )
 		return false;
 	// are there shares to submit?
-
 	EnterCriticalSection(&xptClient->cs_shareSubmit);
 	if( xptClient->list_shareSubmitQueue->objectCount > 0 )
 	{
